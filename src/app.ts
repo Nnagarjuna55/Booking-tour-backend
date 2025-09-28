@@ -68,10 +68,14 @@ const allowedOrigins = envList && envList.length
   ? envList.split(",").map((s) => s.trim()).filter(Boolean)
   : defaultOrigins;
 
+// Allow all origins if explicitly requested via env var (useful for debugging CORS in prod)
+const allowAll = (process.env.ALLOW_ALL_ORIGINS || "false").toLowerCase() === "true";
+
 const corsOptions = {
   origin: (origin: any, callback: any) => {
     // Allow non-browser requests (like server-to-server) where origin is undefined
     if (!origin) return callback(null, true);
+    if (allowAll) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
     // log rejected origin to help with debugging in logs
     // eslint-disable-next-line no-console
@@ -85,6 +89,10 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+
+// Print configured origins for debugging on startup
+// eslint-disable-next-line no-console
+console.info(`[CORS] allowAll=${allowAll} allowedOrigins=${allowAll ? "*" : JSON.stringify(allowedOrigins)}`);
 
 // Ensure all OPTIONS preflight requests across routes are handled
 app.options("*", cors(corsOptions));
