@@ -22,17 +22,21 @@ export const createClient = async (data: Partial<IClient>) => {
   if (phone) orQuery.push({ phone });
   if (email) orQuery.push({ email });
 
-  // Atomic upsert: if a client with phone/email exists, update details (name/email/phone)
-  // This ensures admin-entered client data overwrites placeholders.
+  // Atomic upsert: if a client with phone/email exists, don't overwrite identifying
+  // fields (fullName/email/phone) that may have been set previously. We prefer
+  // to preserve the first known identity for a given phone/email. Only update
+  // non-identifying fields like groupSize and notes on existing records.
   const update: any = {
+    // For existing documents, only update metadata which is safe to overwrite
     $set: {
-      fullName: data.fullName,
-      email: email,
-      phone: phone,
       groupSize: data.groupSize ?? 1,
       notes: data.notes,
     },
+    // When inserting a new document, set all identifying fields
     $setOnInsert: {
+      fullName: data.fullName,
+      email: email,
+      phone: phone,
       createdAt: new Date(),
     },
   };

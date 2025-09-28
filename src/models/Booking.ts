@@ -2,6 +2,11 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IBooking extends Document {
   clientId: mongoose.Types.ObjectId;
+  clientSnapshot?: {
+    fullName?: string;
+    email?: string;
+    phone?: string;
+  };
   placeId: mongoose.Types.ObjectId;
   slotId: mongoose.Types.ObjectId;
   quantity: number;
@@ -14,6 +19,11 @@ export interface IBooking extends Document {
 const BookingSchema: Schema = new Schema<IBooking>(
   {
     clientId: { type: Schema.Types.ObjectId, ref: "Client", required: true },
+    clientSnapshot: {
+      fullName: { type: String },
+      email: { type: String },
+      phone: { type: String },
+    },
     placeId: { type: Schema.Types.ObjectId, ref: "Place", required: true },
     slotId: { type: Schema.Types.ObjectId, ref: "Slot", required: true },
     quantity: { type: Number, required: true },

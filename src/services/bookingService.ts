@@ -18,7 +18,8 @@ export const createBooking = async (
   slotId: string,
   quantity: number,
   actorId?: string,
-  suppliedPlaceEmail?: string
+  suppliedPlaceEmail?: string,
+  clientSnapshot?: { fullName?: string; email?: string; phone?: string }
 ): Promise<IBooking> => {
   // Enforce a daily global booking limit
   const today = new Date();
@@ -86,6 +87,7 @@ export const createBooking = async (
   // At this point bookedCount was incremented atomically. Create booking document.
   const b = new Booking({
     clientId,
+    clientSnapshot: clientSnapshot || undefined,
     placeId,
     slotId,
     quantity,

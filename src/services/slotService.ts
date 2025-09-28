@@ -8,20 +8,43 @@ import * as clientService from "./clientService";
 import { config } from "../config/env";
 
 export const createSlot = async (data: Partial<ISlot>) => {
-  // ensure no overlapping ACTIVE slot exists for same place
-  if (!data.placeId || !data.startAt || !data.endAt) throw new Error("Missing slot data");
+  // Coerce and validate start/end times to avoid inserting null/invalid values
+  if (!data.placeId) throw new Error("Missing placeId for slot");
 
+  let start: Date | null = null;
+  let end: Date | null = null;
+  try {
+    if (data.startAt) start = new Date(data.startAt as any);
+    if (data.endAt) end = new Date(data.endAt as any);
+  } catch (_e) {
+    // ignore, will validate below
+  }
+
+  if (!start || isNaN(start.getTime()) || !end || isNaN(end.getTime())) {
+    throw new Error("Invalid or missing startAt/endAt for slot");
+  }
+
+  if (end <= start) throw new Error("endAt must be after startAt");
+
+  // ensure no overlapping ACTIVE slot exists for same place
   const overlapping = await Slot.findOne({
     placeId: data.placeId,
     status: "ACTIVE",
     $or: [
-      { startAt: { $lt: data.endAt }, endAt: { $gt: data.startAt } },
+      { startAt: { $lt: end }, endAt: { $gt: start } },
     ],
   });
 
   if (overlapping) throw new Error("Overlapping slot exists");
 
-  const slot = new Slot(data);
+  const slotData: Partial<ISlot> = {
+    placeId: data.placeId as any,
+    startAt: start,
+    endAt: end,
+    capacity: data.capacity ?? 0,
+  };
+
+  const slot = new Slot(slotData as any);
   const saved = await slot.save();
 
   try {

@@ -4,7 +4,41 @@ import * as slotService from "./slotService";
 import mongoose from "mongoose";
 
 export const createPlace = async (data: Partial<IPlace> & { slots?: any[] }) => {
-  const place = new Place(data);
+  const payload: any = { ...data };
+  // Normalize images to an array of URL strings
+  if (payload.images) {
+    try {
+      let imgs: any[] = [];
+      if (Array.isArray(payload.images)) imgs = payload.images;
+      else if (typeof payload.images === "string") {
+        try {
+          const parsed = JSON.parse(payload.images);
+          imgs = Array.isArray(parsed) ? parsed : [parsed];
+        } catch (_e) {
+          imgs = [payload.images];
+        }
+      }
+
+      const sanitized = imgs
+        .map((it) => {
+          if (!it) return null;
+          if (typeof it === "string") return it;
+          if (typeof it === "object") {
+            if (it.secure_url && typeof it.secure_url === "string") return it.secure_url;
+            if (it.url && typeof it.url === "string") return it.url;
+            if (it.path && typeof it.path === "string") return it.path;
+          }
+          return null;
+        })
+        .filter(Boolean) as string[];
+
+      payload.images = sanitized;
+    } catch (_e) {
+      payload.images = [];
+    }
+  }
+
+  const place = new Place(payload);
   const saved = await place.save();
 
   if (data.slots && Array.isArray(data.slots) && data.slots.length) {
@@ -32,7 +66,8 @@ export const getPlaces = async () => {
   // For each place, fetch next 3 upcoming active slots
   for (const p of places as any[]) {
     try {
-      const slots = await Slot.find({ placeId: p._id, status: "ACTIVE", startAt: { $gte: now } })
+      // include slots that are active and have not yet ended (endAt >= now)
+      const slots = await Slot.find({ placeId: p._id, status: "ACTIVE", endAt: { $gte: now } })
         .sort({ startAt: 1 })
         .limit(3)
         .lean()
@@ -50,7 +85,8 @@ export const getPlaceById = async (id: string) => {
   if (!place) return null;
   try {
     const now = new Date();
-    const slots = await Slot.find({ placeId: place._id, status: "ACTIVE", startAt: { $gte: now } })
+    // include slots that are active and have not yet ended (endAt >= now)
+    const slots = await Slot.find({ placeId: place._id, status: "ACTIVE", endAt: { $gte: now } })
       .sort({ startAt: 1 })
       .lean()
       .exec();

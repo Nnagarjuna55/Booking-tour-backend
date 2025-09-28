@@ -18,6 +18,8 @@ export const createBooking = async (req: Request, res: Response) => {
     // create the client and use the new id. Otherwise return a helpful error.
     if (clientId) {
       if (!mongoose.Types.ObjectId.isValid(clientId)) {
+        // Provided clientId is not a valid ObjectId. If client details were supplied,
+        // create a new client and use its id. Otherwise reject the request.
         if (client) {
           const created = await clientService.createClient(client);
           clientId = created._id.toString();
@@ -25,16 +27,13 @@ export const createBooking = async (req: Request, res: Response) => {
           return res.status(400).json({ message: "Invalid clientId. Provide a valid Mongo ObjectId or omit clientId and provide client details." });
         }
       } else {
-        // clientId is valid. If admin also provided a client object, update that client record
-        if (client) {
-          try {
-            await clientService.updateClient(clientId, client as any);
-          } catch (e) {
-            // non-fatal: log and continue using existing clientId
-            // eslint-disable-next-line no-console
-            console.warn("Failed to update existing client with provided details:", e);
-          }
-        }
+        // clientId is a valid existing id. IMPORTANT: do NOT automatically overwrite
+        // the stored client record when creating a booking. Previously the controller
+        // updated the client with the incoming client object which could overwrite
+        // the owner's canonical name/email/phone when admins create bookings. To
+        // avoid surprising mutations, we now leave existing client records untouched.
+        // If updating the client is desired, provide an explicit separate client
+        // update flow (or a flag) in the admin UI.
       }
     } else if (client) {
       const created = await clientService.createClient(client);
@@ -46,7 +45,9 @@ export const createBooking = async (req: Request, res: Response) => {
 
     // Support tokens that include either `id` or `_id` in the decoded payload
     const actorId = (req as any).user?.id || (req as any).user?._id;
-    const booking = await bookingService.createBooking(clientId, placeId, slotId, quantity, actorId);
+  // Pass the submitted client object as a snapshot to be stored on the booking
+  // so the booking can display the name that was entered at booking time.
+  const booking = await bookingService.createBooking(clientId, placeId, slotId, quantity, actorId, undefined, client);
     const reservedQuantity = booking.quantity;
     res.status(201).json({ booking, requestedQuantity: quantity, reservedQuantity });
   } catch (err: any) {
@@ -111,9 +112,11 @@ export const getBookingsByPlace = async (req: Request, res: Response) => {
     if (!existing) {
       map.set(cid, {
         clientId: cid,
-        clientName: b.clientId?.fullName,
-        clientEmail: b.clientId?.email,
-        clientPhone: b.clientId?.phone,
+        // Prefer booking-level snapshot (if present) so the UI shows the name entered
+        // at the time of booking. Fall back to the canonical client record otherwise.
+        clientName: b.clientSnapshot?.fullName || b.clientId?.fullName,
+        clientEmail: b.clientSnapshot?.email || b.clientId?.email,
+        clientPhone: b.clientSnapshot?.phone || b.clientId?.phone,
         totalQuantity: b.quantity || 0,
         lastSlotTime: slotTime,
         lastBookingAt: b.createdAt,
@@ -125,6 +128,10 @@ export const getBookingsByPlace = async (req: Request, res: Response) => {
       if (new Date(b.createdAt) > new Date(existing.lastBookingAt)) {
         existing.lastBookingAt = b.createdAt;
         existing.lastSlotTime = slotTime;
+        // update snapshot-based contact info if this is newer
+        existing.clientName = b.clientSnapshot?.fullName || existing.clientName;
+        existing.clientEmail = b.clientSnapshot?.email || existing.clientEmail;
+        existing.clientPhone = b.clientSnapshot?.phone || existing.clientPhone;
       }
     }
   });

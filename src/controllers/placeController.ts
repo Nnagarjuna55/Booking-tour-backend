@@ -6,15 +6,53 @@ export const createPlace = async (req: any, res: Response) => {
   try {
     // upload buffers to Cloudinary and collect URLs
     const files = (req.files as any[] | undefined) || [];
-    const images: string[] = [];
+    const uploadedImages: string[] = [];
     for (const f of files) {
       try {
         const url = await uploadBuffer(f.buffer);
-        if (url) images.push(url);
+        if (url) uploadedImages.push(url);
       } catch (_e) {
         // ignore individual upload errors
       }
     }
+
+    // If client provided `images` in the body (could be JSON string or array or objects),
+    // sanitize and merge with uploaded images so we only persist valid URL strings.
+    let incomingImages: string[] = [];
+    if (req.body.images) {
+      try {
+        let parsedImgs: any[] = [];
+        if (Array.isArray(req.body.images)) parsedImgs = req.body.images;
+        else if (typeof req.body.images === "string") {
+          try {
+            const parsed = JSON.parse(req.body.images);
+            if (Array.isArray(parsed)) parsedImgs = parsed;
+            else parsedImgs = [parsed];
+          } catch (_e) {
+            // fallback - treat as a single URL string
+            parsedImgs = [req.body.images];
+          }
+        }
+
+        incomingImages = parsedImgs
+          .map((it) => {
+            if (!it) return null;
+            if (typeof it === "string") return it;
+            if (typeof it === "object") {
+              if (it.secure_url && typeof it.secure_url === "string") return it.secure_url;
+              if (it.url && typeof it.url === "string") return it.url;
+              if (it.path && typeof it.path === "string") return it.path;
+            }
+            return null;
+          })
+          .filter(Boolean) as string[];
+      } catch (_e) {
+        incomingImages = [];
+      }
+    }
+
+    // Merge uploaded images and incoming image URLs (uploadedImages take precedence)
+    const images = [...incomingImages, ...uploadedImages].filter(Boolean);
 
     // parse slots if provided as JSON string in a multipart form
     let slots: any[] | undefined;
@@ -26,8 +64,11 @@ export const createPlace = async (req: any, res: Response) => {
       }
     }
 
-    const place = await placeService.createPlace({ ...req.body, images, slots });
-    res.status(201).json(place);
+  const place = await placeService.createPlace({ ...req.body, images, slots });
+  // debug: show which images we saved for this place (helps diagnose empty image issues)
+  // eslint-disable-next-line no-console
+  console.debug("[createPlace] saved images:", images);
+  res.status(201).json(place);
   } catch (err: any) {
     res.status(400).json({ message: err.message });
   }

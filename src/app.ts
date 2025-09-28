@@ -53,10 +53,13 @@ import { errorHandler } from "./middleware/errorHandler";
 
 const app: Application = express();
 
-// ✅ Allowed origins (Vercel + local dev)
+// ✅ Allowed origins (Vercel + local dev + Vite)
+// Note: Vite dev server commonly runs on localhost:5173; include 127.0.0.1 too.
 const allowedOrigins = [
   "https://booking-tour-chi.vercel.app",
-  "http://localhost:3000"
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
 ];
 
 app.use(
