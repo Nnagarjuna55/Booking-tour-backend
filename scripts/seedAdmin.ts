@@ -5,11 +5,11 @@ import bcrypt from "bcryptjs";
 
 dotenv.config();
 
-const mongoURI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/tourist_platform";
+const mongoURI = process.env.MONGO_URI || "MONGO_URI=mongodb+srv://Nagarjun55:apChxrW6iabT0fTH@cluster0.acc6jua.mongodb.net/tour-booking";
 
 async function run() {
   await mongoose.connect(mongoURI);
-  const email = process.env.SEED_ADMIN_EMAIL || "admin@example.com";
+  const email = process.env.SEED_ADMIN_EMAIL || "admin@gmail.com";
   const password = process.env.SEED_ADMIN_PASSWORD || "password123";
 
   const existing = await Admin.findOne({ email });
