@@ -2,11 +2,11 @@
   "name": "tourist-platform-backend",
   "version": "1.0.0",
   "description": "Admin-driven Tourist Reservation Platform - Backend",
-  "scripts": {
+ "scripts": {
   "dev": "nodemon src/server.ts",
   "build": "tsc",
   "postinstall": "npm run build",
-  "start": "ts-node src/server.ts",
+  "start": "node dist/server.js",
   "seed-admin": "ts-node ./scripts/seedAdmin.ts",
   "clean": "rimraf dist"
 },
