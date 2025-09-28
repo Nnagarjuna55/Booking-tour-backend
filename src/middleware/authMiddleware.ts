@@ -2,16 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { config } from "../config/env";
 
-export interface AuthRequest extends Request {
-  user?: any;
-}
-
 export const authMiddleware = (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  const authHeader = req.headers.authorization;
+  const authHeader = req.headers && (req.headers as any).authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -19,7 +15,8 @@ export const authMiddleware = (
   const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, config.jwtSecret);
-    req.user = decoded;
+    // assign into augmented Request.user (declared in src/types/express.d.ts)
+    (req as any).user = decoded;
     next();
   } catch (err) {
     res.status(401).json({ message: "Invalid token" });
