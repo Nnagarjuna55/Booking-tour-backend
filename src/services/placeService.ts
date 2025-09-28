@@ -10,22 +10,12 @@ export const createPlace = async (data: Partial<IPlace> & { slots?: any[] }) => 
   if (data.slots && Array.isArray(data.slots) && data.slots.length) {
     for (const s of data.slots) {
       try {
-        // If slot is marked as template or provided as time strings (no date), store as a SlotTemplate
-        const isTemplate = s.isTemplate || (typeof s.startAt === "string" && s.startAt.length <= 8);
-        if (isTemplate) {
-          // lazy import to avoid circular dependency
-          const SlotTemplate = require("../models/SlotTemplate").default;
-          const startTime = typeof s.startAt === "string" ? s.startAt : new Date(s.startAt).toTimeString().slice(0,5);
-          const endTime = typeof s.endAt === "string" ? s.endAt : new Date(s.endAt).toTimeString().slice(0,5);
-          await SlotTemplate.create({ placeId: saved._id, startTime, endTime, capacity: s.capacity });
-        } else {
-          await slotService.createSlot({
-            placeId: saved._id,
-            startAt: s.startAt,
-            endAt: s.endAt,
-            capacity: s.capacity,
-          });
-        }
+        await slotService.createSlot({
+          placeId: saved._id,
+          startAt: s.startAt,
+          endAt: s.endAt,
+          capacity: s.capacity,
+        });
       } catch (_e) {
         // ignore individual slot creation failures (overlaps, validation)
       }
