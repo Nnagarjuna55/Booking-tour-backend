@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "start": "npm run build && node dist/server.js",
+    "start": "node dist/server.js",
     "seed-admin": "ts-node ./scripts/seedAdmin.ts"
   },
   "dependencies": {
@@ -38,6 +38,7 @@
     "@types/streamifier": "^0.1.2",
     "@types/uuid": "^9.0.8",
     "nodemon": "^3.0.2",
+    "rimraf": "^6.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }
