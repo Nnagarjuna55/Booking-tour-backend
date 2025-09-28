@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "start": "ts-node src/server.ts",
+    "postinstall": "npm run build",
+    "start": "node dist/server.js",
     "seed-admin": "ts-node ./scripts/seedAdmin.ts",
     "clean": "rimraf dist"
   },
