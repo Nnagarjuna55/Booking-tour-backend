@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "outDir": "./dist",          // <-- ensures compiled files go to 'dist'
-    "rootDir": "./src",          // <-- your source files
+    "rootDir": "./src",
+    "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
