@@ -4,9 +4,9 @@
   "description": "Admin-driven Tourist Reservation Platform - Backend",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "nodemon",
+    "dev": "nodemon src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "npm run build && node dist/server.js",
     "seed-admin": "ts-node ./scripts/seedAdmin.ts"
   },
   "dependencies": {
